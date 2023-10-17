@@ -1,0 +1,11 @@
+.main {
+  position: absolute;
+  top: var(--header-height);
+  left: 0;
+  height: calc(100% - var(--header-height) - var(--footer-height));
+  width: 100%;
+  background-color: #B2EBEE;
+  display: flex;
+  justify-content: center;
+  align-items: 'center';
+}

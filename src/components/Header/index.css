@@ -1,0 +1,14 @@
+.header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--header-height);
+  text-align: left;
+  background-color: var(--header-color);
+  color: white;
+}
+
+.header h1 {
+  margin-left: 20px;
+}
