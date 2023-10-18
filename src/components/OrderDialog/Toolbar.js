@@ -4,7 +4,7 @@ import ToolbarButton from "./ToolbarButton";
 export default function Toolbar({ buttons }) {
   return (
     <Stack direction="row" spacing={2} padding={"10px 0"}>
-      <Typography variant="h6" component="div" sx={{ flexGrow: 1 }} />
+      <Typography component="div" sx={{ display: 'flex', alignItems: 'center', color: 'var(--black-jubo-color)', flexGrow: 1 }}>雙擊Message以編輯</Typography>
       {buttons.map((item, index) => (
         <ToolbarButton key={`toolbar-button-${index}`} {...item} />
       ))}
