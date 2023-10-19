@@ -13,26 +13,7 @@ import {
 } from "@mui/material";
 import { visuallyHidden } from "@mui/utils";
 
-// Mock data to test UI.
-// function createData(id, name, telephone, address) {
-//   return {
-//     id,
-//     name,
-//     telephone,
-//     address,
-//   };
-// }
-// const mockRows = [
-//   createData(1, "王大明", "0911999888", "新北市新店區民權路99號"),
-//   createData(2, "林小華", "0937199347", "新北市新店區中正路29號5樓"),
-//   createData(3, "陳大頭", "0921703165", "新北市新店區二十張路46巷1號"),
-//   createData(4, "蔡小美", "0919639758", "新北市新店區北新路三段47號"),
-//   createData(5, "方大同", "0912389108", "新北市新店區建國路99號"),
-//   createData(6, "李小龍", "0936635151", "新北市新店區北新路三段60巷47號"),
-//   createData(7, "包不同", "0921384448", "新北市新店區建國路199號"),
-// ];
-
-function descendingComparator(a, b, orderBy) {
+const descendingComparator = (a, b, orderBy) => {
   if (b[orderBy] < a[orderBy]) {
     return -1;
   }
@@ -40,15 +21,15 @@ function descendingComparator(a, b, orderBy) {
     return 1;
   }
   return 0;
-}
+};
 
-function getComparator(order, orderBy) {
+const getComparator = (order, orderBy) => {
   return order === "desc"
     ? (a, b) => descendingComparator(a, b, orderBy)
     : (a, b) => -descendingComparator(a, b, orderBy);
-}
+};
 
-function stableSort(array, comparator) {
+const stableSort = (array, comparator) => {
   const stabilizedThis = array.map((el, index) => [el, index]);
   stabilizedThis.sort((a, b) => {
     const order = comparator(a[0], b[0]);
@@ -58,7 +39,7 @@ function stableSort(array, comparator) {
     return a[1] - b[1];
   });
   return stabilizedThis.map((el) => el[0]);
-}
+};
 
 const headCells = [
   {
@@ -87,7 +68,7 @@ const headCells = [
   },
 ];
 
-function EnhancedTableHead(props) {
+const EnhancedTableHead = (props) => {
   const { order, orderBy } = props;
 
   return (
@@ -119,7 +100,7 @@ function EnhancedTableHead(props) {
       </TableRow>
     </TableHead>
   );
-}
+};
 
 EnhancedTableHead.propTypes = {
   onRequestSort: PropTypes.func.isRequired,
@@ -139,14 +120,9 @@ export default function PatientList(props) {
     setOrderBy(property);
   };
 
-  const handleClick = (_, data) => {
-    props.handleSelectedPatient(data);
-  };
-
-  const handleChangePage = (_, newPage) => {
-    setPage(newPage);
-  };
-
+  // Event handlers
+  const handleClick = (_, data) => props.handleSelectedPatient(data);
+  const handleChangePage = (_, newPage) => setPage(newPage);
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);

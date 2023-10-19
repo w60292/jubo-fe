@@ -14,4 +14,10 @@ yarn && yarn start
 
 ## Snapshot
 
+### List All Patients
+
 <img src="./resources/snapshot-1.png" width="75%" height="75%">
+
+### Edit Order
+
+<img src="./resources/snapshot-3.png" width="75%" height="75%">

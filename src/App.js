@@ -7,27 +7,34 @@ import Footer from "./components/Footer";
 import PatientList from "./components/PatientList";
 import OrderDialog from "./components/OrderDialog";
 
+import { fetchAPI } from "./utils";
+
 function App() {
   // Avoid loading twice while using react v18+
   const initFlag = useRef(true);
+  // Patient List
   const [patients, setPatients] = useState([]);
+  // To show the order dialog or not.
   const [showDialog, setShowDialog] = useState(false);
-  const [selectedData, setSelectedData] = useState(null);
+  // Selected Patient.
+  const [selectedPatient, setSelectedPatient] = useState(null);
+
   const handleSelectedPatient = (data) => {
-    setSelectedData(data);
+    setSelectedPatient(data);
     setShowDialog(true);
   };
 
   useEffect(() => {
-    const init = async () => {
+    const getPatientList = async () => {
+      let patientList = [];
+
       initFlag.current = false;
-      await fetch("/getPatients")
-        .then((res) => res.json())
-        .then((jsonResult) => setPatients(jsonResult));
+      patientList = await fetchAPI("GET", "/getPatients");
+      setPatients(patientList);
     };
 
     if (initFlag.current) {
-      init();
+      getPatientList();
     }
   }, []);
 
@@ -42,7 +49,7 @@ function App() {
         <OrderDialog
           open={showDialog}
           setShowDialog={setShowDialog}
-          data={selectedData}
+          data={selectedPatient}
         />
       </Main>
       <Footer />

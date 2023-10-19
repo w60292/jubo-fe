@@ -1,8 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import {
-  Add as AddIcon,
-  Delete as DeleteIcon,
-} from "@mui/icons-material";
+import { useEffect, useRef, useState } from "react";
+import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import {
   Box,
   Button,
@@ -12,99 +9,101 @@ import {
   DialogActions,
 } from "@mui/material";
 import { DataGrid } from "@mui/x-data-grid";
-import { randomId } from '@mui/x-data-grid-generator';
-import { DialogContext } from './DialogContext';
+import { randomId } from "@mui/x-data-grid-generator";
+
+import { fetchAPI } from "../../../utils";
+import { DialogContext } from "./DialogContext";
 import Toolbar from "./Toolbar";
 
-// const orderMockRows = [
-//   { id: 1, message: "就寢時間，臨睡前大劑量給藥" },
-//   { id: 2, message: "超過120請施打8u" },
-//   { id: 3, message: "繼續同樣治療" },
-//   { id: 4, message: "肌肉注射含5%葡萄糖的生理鹽水" },
-//   { id: 5, message: "禁食，禁飲水" },
-// ];
-const _fetchAPI = async (method = 'POST', endpoint, bodyObj) => {
-  const headers = new Headers();
-  const raw = JSON.stringify(bodyObj);
-  const requestOptions = {
-    method,
-    headers: headers,
-    body: raw,
-  };
-
-  headers.append("Content-Type", "application/json");
-  
-  return await fetch(endpoint, requestOptions)
-    .then(resp => resp.json())
-    .catch(err => console.error(err));
-}
-
-const orderColumns = [
-  {
-    field: "sno",
-    headerName: "#",
-    width: 50,
-    headerClassName: "jubo-theme-header",
-  },
-  {
-    field: "message",
-    headerName: "Message",
-    flex: 1,
-    headerClassName: "jubo-theme-header",
-    editable: true,
-  },
-];
-
 export default function OrderDialog({ open, data, setShowDialog }) {
+  // Current patient ID
   const patientIdRef = useRef(0);
+  // The order list of current patient
   const [orderList, setOrderList] = useState([]);
+  // The selected order to edit or remove
   const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const fetchOrderList = async (id) => {
-    await fetch(`/order?patientId=${id}`)
-      .then((res) => res.json())
-      .then((jsonResult) => setOrderList(jsonResult));
-  }
+  const orderColumns = [
+    {
+      field: "sno",
+      headerName: "#",
+      width: 50,
+      headerClassName: "jubo-theme-header",
+    },
+    {
+      field: "message",
+      headerName: "Message",
+      flex: 1,
+      headerClassName: "jubo-theme-header",
+      editable: true,
+    },
+  ];
 
+  // Get order list from the BE server.
+  const fetchOrderList = async (id) => {
+    const results = await fetchAPI("GET", `/order?patientId=${id}`);
+    // Set order list
+    setOrderList(results);
+    // Clear the selected order.
+    setSelectedOrder(null);
+  };
+
+  // Select an order to edit or remove.
   const handleRowClick = (event) => {
     const { row } = event;
     setSelectedOrder(row);
-  }
+  };
 
+  // While user press "Enter" or focus out of the field, we will treat as
+  // editing complete, and insert/update the data row to BE server.
   const processRowUpdate = async (newRow) => {
     const { isNew, message, id } = newRow;
     if (isNew) {
-      await _fetchAPI('POST', '/order', {
+      await fetchAPI("POST", "/order", {
         patientId: patientIdRef.current,
         message,
         isNew,
       });
     } else {
-      await _fetchAPI('POST', '/order', {
+      await fetchAPI("POST", "/order", {
         orderId: id,
         message,
       });
     }
+    // After insert/update operation, we'll refetch the order list and renew
+    // the data grid.
     await fetchOrderList(patientIdRef.current);
-    setSelectedOrder(null);
-  }
+  };
 
   const handleClose = (_, reason) => {
     // Don't close the dialog if user clicks outside of it.
+    // We would only accept user to close the dialog from the "CLOSE" button.
     if (reason && reason === "backdropClick") return;
     else {
       setSelectedOrder(null);
       setShowDialog(false);
     }
   };
+
+  // Button config for the toolbar.
   const buttons = [
     {
       text: "Add",
       icon: <AddIcon />,
       disabled: false,
       handler: () => {
-        const id = randomId();
-        setOrderList((oldRows) => [...oldRows, { id, sno: oldRows.length + 1, message: '', isNew: true }]);
+        // Create a new row and remark isNew to true.
+        setOrderList((oldRows) => {
+          return [
+            ...oldRows,
+            {
+              id: randomId(),
+              sno: oldRows.length + 1,
+              message: "",
+              isNew: true,
+            },
+          ];
+        });
         setSelectedOrder(null);
       },
     },
@@ -113,10 +112,9 @@ export default function OrderDialog({ open, data, setShowDialog }) {
       icon: <DeleteIcon />,
       disabled: true,
       handler: async () => {
-        const { id } = selectedOrder
-        await _fetchAPI('DELETE', `/order?orderId=${id}`);
+        const { id } = selectedOrder;
+        await fetchAPI("DELETE", `/order?orderId=${id}`);
         await fetchOrderList(patientIdRef.current);
-        setSelectedOrder(null);
       },
     },
   ];
@@ -140,7 +138,7 @@ export default function OrderDialog({ open, data, setShowDialog }) {
         },
       }}
     >
-      <DialogContext.Provider value={{selectedOrder}}>
+      <DialogContext.Provider value={{ selectedOrder }}>
         <DialogTitle
           sx={{
             backgroundColor: "var(--header-color)",
@@ -165,14 +163,14 @@ export default function OrderDialog({ open, data, setShowDialog }) {
               },
             }}
           >
-            <DataGrid 
+            <DataGrid
               experimentalFeatures={{ newEditingApi: true }}
               editMode="row"
-              rows={orderList} 
-              columns={orderColumns} 
+              rows={orderList}
+              columns={orderColumns}
               onRowClick={handleRowClick}
               processRowUpdate={processRowUpdate}
-              onProcessRowUpdateError={()=>{}}
+              onProcessRowUpdateError={(err) => console.error(err)}
             />
           </Box>
         </DialogContent>
