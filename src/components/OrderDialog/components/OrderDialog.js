@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useReducer, useRef } from "react";
 import { Add as AddIcon, Delete as DeleteIcon } from "@mui/icons-material";
 import {
   Box,
@@ -18,10 +18,59 @@ import Toolbar from "./Toolbar";
 export default function OrderDialog({ open, data, setShowDialog }) {
   // Current patient ID
   const patientIdRef = useRef(0);
-  // The order list of current patient
-  const [orderList, setOrderList] = useState([]);
-  // The selected order to edit or remove
-  const [selectedOrder, setSelectedOrder] = useState(null);
+  const initialState = {
+    orderList: [],
+    selectedOrder: null,
+  };
+  const orderReducer = (state, action) => {
+    const { type, payload } = action;
+
+    switch (type) {
+      // List orders
+      case "LIST": {
+        const { orderList } = payload;
+        return {
+          ...state,
+          orderList,
+          selectedOrder: null,
+        };
+      }
+      case "SELECT":
+        // Select an order to edit or delete.
+        const { row } = payload;
+        return {
+          ...state,
+          selectedOrder: row,
+        };
+      case "NEW": {
+        // Create a new row and remark isNew to true.
+        const { orderList } = state;
+
+        return {
+          ...state,
+          orderList: [
+            ...orderList,
+            {
+              id: randomId(),
+              sno: orderList.length + 1,
+              message: "",
+              isNew: true,
+            },
+          ],
+          selectedOrder: null,
+        };
+      }
+      case "RESET": {
+        return {
+          ...state,
+          selectedOrder: null,
+        };
+      }
+      default:
+        break;
+    }
+  };
+  const [state, dispatch] = useReducer(orderReducer, initialState);
 
   const orderColumns = [
     {
@@ -40,27 +89,31 @@ export default function OrderDialog({ open, data, setShowDialog }) {
   ];
 
   // Get order list from the BE server.
-  const fetchOrderList = async (id) => {
-    const results = await fetchAPI("GET", `/order?patientId=${id}`);
-    // Set order list
-    setOrderList(results);
-    // Clear the selected order.
-    setSelectedOrder(null);
+  const fetchOrderList = async (patientId) => {
+    const orderList = await fetchAPI("GET", `/order?patientId=${patientId}`);
+    dispatch({ type: "LIST", payload: { orderList } });
+  };
+
+  // Remove an order
+  const deleteOrder = async (orderId) => {
+    await fetchAPI("DELETE", `/order?orderId=${orderId}`);
+    await fetchOrderList(patientIdRef.current);
   };
 
   // Select an order to edit or remove.
   const handleRowClick = (event) => {
-    const { row } = event;
-    setSelectedOrder(row);
+    dispatch({ type: "SELECT", payload: { row: event.row } });
   };
 
   // While user press "Enter" or focus out of the field, we will treat as
   // editing complete, and insert/update the data row to BE server.
   const processRowUpdate = async (newRow) => {
     const { isNew, message, id } = newRow;
+    const patientId = patientIdRef.current;
+
     if (isNew) {
       await fetchAPI("POST", "/order", {
-        patientId: patientIdRef.current,
+        patientId,
         message,
         isNew,
       });
@@ -72,7 +125,7 @@ export default function OrderDialog({ open, data, setShowDialog }) {
     }
     // After insert/update operation, we'll refetch the order list and renew
     // the data grid.
-    await fetchOrderList(patientIdRef.current);
+    await fetchOrderList(patientId);
   };
 
   const handleClose = (_, reason) => {
@@ -80,7 +133,7 @@ export default function OrderDialog({ open, data, setShowDialog }) {
     // We would only accept user to close the dialog from the "CLOSE" button.
     if (reason && reason === "backdropClick") return;
     else {
-      setSelectedOrder(null);
+      dispatch({ type: "RESET" });
       setShowDialog(false);
     }
   };
@@ -91,30 +144,15 @@ export default function OrderDialog({ open, data, setShowDialog }) {
       text: "Add",
       icon: <AddIcon />,
       disabled: false,
-      handler: () => {
-        // Create a new row and remark isNew to true.
-        setOrderList((oldRows) => {
-          return [
-            ...oldRows,
-            {
-              id: randomId(),
-              sno: oldRows.length + 1,
-              message: "",
-              isNew: true,
-            },
-          ];
-        });
-        setSelectedOrder(null);
-      },
+      handler: () => dispatch({ type: "NEW" }),
     },
     {
       text: "Remove",
       icon: <DeleteIcon />,
       disabled: true,
       handler: async () => {
-        const { id } = selectedOrder;
-        await fetchAPI("DELETE", `/order?orderId=${id}`);
-        await fetchOrderList(patientIdRef.current);
+        const { id } = state.selectedOrder || {};
+        await deleteOrder(id);
       },
     },
   ];
@@ -124,7 +162,7 @@ export default function OrderDialog({ open, data, setShowDialog }) {
       patientIdRef.current = data.id;
       fetchOrderList(data.id);
     }
-  }, [data, orderList, selectedOrder]);
+  }, [data, state]);
 
   return (
     <Dialog
@@ -138,7 +176,7 @@ export default function OrderDialog({ open, data, setShowDialog }) {
         },
       }}
     >
-      <DialogContext.Provider value={{ selectedOrder }}>
+      <DialogContext.Provider value={state.selectedOrder}>
         <DialogTitle
           sx={{
             backgroundColor: "var(--header-color)",
@@ -166,11 +204,11 @@ export default function OrderDialog({ open, data, setShowDialog }) {
             <DataGrid
               experimentalFeatures={{ newEditingApi: true }}
               editMode="row"
-              rows={orderList}
+              rows={state.orderList || []}
               columns={orderColumns}
               onRowClick={handleRowClick}
               processRowUpdate={processRowUpdate}
-              onProcessRowUpdateError={(err) => console.error(err)}
+              onProcessRowUpdateError={() => {}}
             />
           </Box>
         </DialogContent>

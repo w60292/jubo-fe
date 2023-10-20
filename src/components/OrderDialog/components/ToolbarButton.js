@@ -16,14 +16,14 @@ import { DialogContext } from "./DialogContext";
  * />
  */
 export default function ToolbarButton({ text, icon, handler = {}, disabled }) {
-  const { selectedOrder } = useContext(DialogContext);
+  const selected = useContext(DialogContext);
 
   return (
     <Button
       variant="contained"
       onClick={handler}
       startIcon={icon}
-      disabled={disabled && !selectedOrder?.id}
+      disabled={disabled && !selected?.id}
       sx={{
         backgroundColor: "var(--dark-jubo-color)",
         fontWeight: "bold",
